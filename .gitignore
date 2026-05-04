@@ -5,7 +5,7 @@
 
 .claude/settings.local.json
 .vscode/
-.env
+.env*
 appsettings.Development*.json
 helm/chart/*
 helm/values.*.yaml
