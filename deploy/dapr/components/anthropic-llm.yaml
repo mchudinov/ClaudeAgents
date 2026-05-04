@@ -1,0 +1,18 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: anthropic-llm
+spec:
+  type: conversation.anthropic
+  version: v1
+  metadata:
+    - name: key
+      secretKeyRef:
+        name: ANTHROPIC_API_KEY
+        key: ANTHROPIC_API_KEY
+    - name: model
+      value: claude-opus-4-7
+    - name: cacheTTL
+      value: 10m
+auth:
+  secretStore: envvar-secretstore

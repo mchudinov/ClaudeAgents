@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MSAgentFramework.Agent.Contracts/MSAgentFramework.Agent.Contracts.csproj" />
+    <Project Path="src/MSAgentFramework.Agent/MSAgentFramework.Agent.csproj" />
+    <Project Path="src/MSAgentFramework.AppHost/MSAgentFramework.AppHost.csproj" />
+    <Project Path="src/MSAgentFramework.ServiceDefaults/MSAgentFramework.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MSAgentFramework.Agent.Tests/MSAgentFramework.Agent.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,74 @@
+name: msagent-dotnet-csharp-expert
+
+services:
+  agent:
+    build:
+      context: ../
+      dockerfile: deploy/Dockerfile
+    image: msagent-dotnet-csharp-expert:latest
+    container_name: msagent-agent
+    ports:
+      - "8085:8085"
+    environment:
+      ASPNETCORE_URLS: http://+:8085
+      DAPR_HTTP_ENDPOINT: http://localhost:3500
+      DAPR_GRPC_ENDPOINT: http://localhost:50001
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in your shell or .env file}
+    depends_on:
+      redis:
+        condition: service_healthy
+      placement:
+        condition: service_started
+
+  daprd:
+    image: daprio/daprd:1.17.0
+    container_name: msagent-daprd
+    command:
+      - "./daprd"
+      - "--app-id"
+      - "dotnet-csharp-agent"
+      - "--app-port"
+      - "8085"
+      - "--app-protocol"
+      - "http"
+      - "--dapr-http-port"
+      - "3500"
+      - "--dapr-grpc-port"
+      - "50001"
+      - "--placement-host-address"
+      - "placement:50005"
+      - "--resources-path"
+      - "/components"
+      - "--log-level"
+      - "info"
+    volumes:
+      - ./dapr/components:/components:ro
+    network_mode: "service:agent"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in your shell or .env file}
+    depends_on:
+      agent:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      placement:
+        condition: service_started
+
+  redis:
+    image: redis:7-alpine
+    container_name: msagent-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
+
+  placement:
+    image: daprio/dapr:1.17.0
+    container_name: msagent-placement
+    command: ["./placement", "--port", "50005"]
+
+volumes:
+  redis-data:

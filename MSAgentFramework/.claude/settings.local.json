@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet new *)",
+      "Bash(dotnet sln *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet run *)",
+      "Bash(curl -sf -o /dev/null http://localhost:8085/health)",
+      "Bash(curl -sf -o /dev/null http://localhost:8085/alive)",
+      "Bash(curl -s -i http://localhost:8085/health)",
+      "Bash(curl -s -i http://localhost:8085/alive)",
+      "Bash(curl -s -i -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')",
+      "Bash(curl -s -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -H \"Mcp-Session-Id: probe1\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')",
+      "Bash(curl -s -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -H \"Mcp-Session-Id: probe1\" -d '{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}')",
+      "Bash(curl -s -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -H \"Mcp-Session-Id: probe1\" -d '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}')",
+      "Bash(curl -s -D - -o /dev/null -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')"
+    ]
+  }
+}
