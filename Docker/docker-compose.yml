@@ -1,0 +1,20 @@
+services:
+  claude:
+    build: .
+    image: claude-dotnet-dev
+    container_name: claude-dotnet-dev
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - claude-home:/home/dev/.claude
+    ports:
+      - "8081:8081"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ASPNETCORE_URLS=http://+:8081
+    command: claude
+
+volumes:
+  claude-home:

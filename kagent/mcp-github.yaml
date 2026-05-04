@@ -1,0 +1,83 @@
+---
+# GitHub remote MCP server for the kagent ecosystem.
+#
+# GitHub hosts an official remote MCP server at https://api.githubcopilot.com/mcp/
+# (Streamable HTTP transport). It exposes tools for repository, issue, PR,
+# branch, file, release, and Actions management — all driven by a GitHub
+# personal access token (PAT) sent in the Authorization header.
+#
+# Apply order: Secret -> RemoteMCPServer.
+#
+# To use these tools from an Agent, add to the Agent's spec.declarative.tools:
+#
+#   tools:
+#     - type: McpServer
+#       mcpServer:
+#         name: github
+#         kind: RemoteMCPServer
+#         # Omit toolNames to allow ALL discovered tools, or restrict to
+#         # a specific subset, e.g.:
+#         # toolNames:
+#         #   - get_issue
+#         #   - create_issue
+#         #   - get_pull_request
+#         #   - list_commits
+#         #   - search_repositories
+#
+# PAT scopes: pick the minimum that covers your tool usage. Common picks:
+#   - `repo`           full repo access (private + public)
+#   - `public_repo`    public repos only
+#   - `read:org`       read org membership / teams
+#   - `workflow`       update GitHub Actions workflows
+# A fine-grained PAT scoped to specific repos is preferred over a classic PAT.
+---
+# GitHub PAT secret. The Authorization header value is resolved verbatim
+# from the `AUTHORIZATION` key, so the secret value MUST include the
+# `Bearer ` prefix (kagent's headersFrom does not prepend it).
+#
+# Replace REPLACE_ME, OR (recommended — keeps the token out of git) skip
+# applying this Secret block and create it out-of-band:
+#
+#   kubectl create secret generic github-mcp-token -n kagent \
+#     --from-literal AUTHORIZATION="Bearer $GITHUB_MCP_PAT"
+#
+# Rotation: replace the secret and restart any Agent pods that have an
+# open SSE/streamable-http connection.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-mcp-token
+  namespace: kagent
+type: Opaque
+stringData:
+  # Variable: replace REPLACE_ME with your private GitHub PAT, keeping the
+  # `Bearer ` prefix. Example value: "Bearer ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  AUTHORIZATION: "Bearer ghp_dummy"
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: github
+  namespace: kagent
+  labels:
+    app.kubernetes.io/name: github-mcp
+    app.kubernetes.io/component: mcp-server
+spec:
+  description: >-
+    GitHub remote MCP server (api.githubcopilot.com). Provides tools for
+    repository, issue, pull request, branch, file, release, and Actions
+    management via a GitHub personal access token.
+  protocol: STREAMABLE_HTTP
+  url: "https://api.githubcopilot.com/mcp/"
+  timeout: 60s
+  sseReadTimeout: 60s
+  terminateOnClose: true
+  # Authenticate every request with the PAT, sourced from the Secret above.
+  # The resolved value is `Bearer <PAT>` because the secret stores the
+  # full header value (prefix included).
+  headersFrom:
+    - name: Authorization
+      valueFrom:
+        type: Secret
+        name: github-mcp-token
+        key: AUTHORIZATION

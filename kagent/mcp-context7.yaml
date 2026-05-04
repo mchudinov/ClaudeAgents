@@ -1,0 +1,70 @@
+---
+# Context7 remote MCP server for the kagent ecosystem.
+#
+# Context7 (https://context7.com) hosts an authenticated remote MCP endpoint
+# that serves up-to-date library / framework documentation to agents. This
+# manifest registers it as a RemoteMCPServer in the `kagent` namespace so
+# any Agent in the cluster can be given Context7 tools (resolve-library-id,
+# query-docs) by referencing this server.
+#
+# Apply order: Secret -> RemoteMCPServer.
+#
+# To use these tools from an Agent, add to the Agent's spec.declarative.tools:
+#
+#   tools:
+#     - type: McpServer
+#       mcpServer:
+#         name: context7
+#         kind: RemoteMCPServer
+#         toolNames:
+#           - resolve-library-id
+#           - query-docs
+---
+# Context7 API key. The key is held in a Kubernetes Secret so it can be
+# rotated without editing the RemoteMCPServer resource. Replace the
+# placeholder below, OR (recommended) skip applying this Secret block and
+# create the secret out-of-band so the key never lives in git:
+#
+#   kubectl create secret generic context7-api-key -n kagent \
+#     --from-literal CONTEXT7_API_KEY=$CONTEXT7_API_KEY
+#
+# The key referenced by RemoteMCPServer.headersFrom MUST match the secret
+# data key used here (CONTEXT7_API_KEY).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: context7-api-key
+  namespace: kagent
+type: Opaque
+stringData:
+  # Variable: replace REPLACE_ME with your private Context7 API key, or
+  # apply via the kubectl create secret command in the comment above.
+  CONTEXT7_API_KEY: "ctx7sk-d1fc4829-8786-4177-82b4-d17fb803710a"
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: context7
+  namespace: kagent
+  labels:
+    app.kubernetes.io/name: context7
+    app.kubernetes.io/component: mcp-server
+spec:
+  description: >-
+    Context7 remote MCP server. Provides up-to-date documentation and code
+    examples for libraries, frameworks, SDKs, and CLIs via the
+    `resolve-library-id` and `query-docs` tools.
+  protocol: STREAMABLE_HTTP
+  url: "https://mcp.context7.com/mcp"
+  timeout: 60s
+  sseReadTimeout: 60s
+  terminateOnClose: true
+  # Authenticate every request with the Context7 API key, sourced from the
+  # Secret above. The header name `CONTEXT7_API_KEY` is what Context7's
+  # remote MCP endpoint expects.
+  headersFrom:
+    - name: CONTEXT7_API_KEY
+      valueFrom:
+        type: Secret
+        name: context7-api-key
+        key: CONTEXT7_API_KEY
