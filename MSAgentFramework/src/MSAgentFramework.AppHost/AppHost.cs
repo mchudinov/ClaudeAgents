@@ -12,7 +12,7 @@ var agent = builder.AddProject<Projects.MSAgentFramework_Agent>("agent")
     {
         AppId = "dotnet-csharp-agent",
         AppPort = 8085,
-        ResourcesPaths = ["../../deploy/dapr/components"]
+        ResourcesPaths = ["../../../deploy/dapr/components"]
     });
 
 builder.Build().Run();

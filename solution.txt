@@ -1,0 +1,90 @@
+Idea
+Create a AI Agent based on Anthropic Claude Console, that uses Opus 4.7 LLM. Use .NET 10 and Dapr Agent framework. Pack agent into a Docker file and prepare it to run remotely on port 
+   8085. Make it possible to be called remotely as subagent for Claude Code from console.              
+   
+   
+
+HLD   
+   Layer cake                                                                                                                                                                              
+                                                                                                                                                                                          
+  ┌─────────────────────────────────────┬──────────────────────────────────────────────────────────────────┬───────────────────────────────────┐                                          
+  │                Layer                │         Microsoft Agent Framework (Microsoft.Agents.AI)          │         Dapr AI (Dapr.AI)         │                                          
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤                                          
+  │ Agent loop (LLM ↔ tool dispatch)    │ ✅ ChatClientAgent, threads, tool calling                        │ ❌                                │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Multi-agent orchestration           │ ✅ sequential / concurrent / handoff / group-chat / Magentic-One │ ❌                                │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ MCP server hosting                  │ ✅ first-class                                                   │ ❌                                │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Persona / system prompt / memory    │ ✅                                                               │ ❌                                │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ LLM provider abstraction            │ via IChatClient (in-process)                                     │ via Dapr sidecar + component YAML │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Provider swap without code change   │ one-line code change                                             │ YAML-only, no recompile           │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Prompt caching                      │ provider-dependent                                               │ ✅ at sidecar (cross-language)    │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ PII obfuscation                     │ ❌ (DIY)                                                         │ ✅ at sidecar                     │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Cross-language uniform LLM contract │ .NET / Python only                                               │ any Dapr-supported language       │
+  ├─────────────────────────────────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────┤
+  │ Resiliency / telemetry / mTLS       │ DIY via OpenTelemetry                                            │ ✅ from the runtime               │
+  └─────────────────────────────────────┴──────────────────────────────────────────────────────────────────┴───────────────────────────────────┘
+
+How they compose
+
+  MAF needs one thing to talk to a model: an implementation of IChatClient (from Microsoft.Extensions.AI). MAF ships first-party IChatClient adapters for Anthropic, OpenAI, Azure OpenAI,
+   Bedrock, Gemini, Ollama — all direct, in-process HTTP calls.
+
+  Dapr.AI's DaprConversationClient is a parallel abstraction: same job (call an LLM), different mechanism (call goes through the sidecar to a component). Dapr.AI does not implement
+  IChatClient out of the box.
+
+  The complementary pattern is therefore a small IChatClient adapter that wraps DaprConversationClient:
+
+  ChatClientAgent (MAF)
+     ↓ IChatClient
+  DaprChatClient  ← ~50 LOC adapter you write
+     ↓ ConverseAsync
+  Dapr sidecar  →  conversation.anthropic component  →  Claude Opus 4.7
+
+  That gives you MAF on top (agent loop, persona, MCP server, tool calling, multi-agent) and Dapr underneath (provider-portable config, prompt caching, PII filter, retries, telemetry,
+  mTLS — and you can swap to Bedrock or Azure OpenAI by editing a YAML file with no recompile).
+  
+  
+  MAF + IChatClient adapter over Dapr.AI (both frameworks, honest "uses Dapr") — agent runs MAF, LLM call goes through the sidecar. Two containers (app + daprd). ~50 LOC adapter.
+  
+  Use AspireHost project to run Dapr. Use Dapr Redis for agentic memory storage. Use Anthropic Opus 4.7 LLM. 
+  
+  
+  Solution design
+  
+  MSAgentFramework/
+  ├─ MSAgentFramework.sln
+  ├─ src/
+  │  ├─ MSAgentFramework.AppHost/          (.NET 10, Aspire AppHost)
+  │  ├─ MSAgentFramework.ServiceDefaults/  (shared OTel/health-check defaults)
+  │  ├─ MSAgentFramework.Agent/            (ASP.NET Core, MCP server on :8085)
+  │  └─ MSAgentFramework.Agent.Contracts/  (DTOs, persona constants)
+  └─ deploy/
+     ├─ Dockerfile                         (agent image only)
+     ├─ docker-compose.yml                 (remote deploy: agent + daprd + redis + placement)
+     └─ dapr/components/
+        ├─ anthropic-llm.yaml              (conversation.anthropic, model=claude-opus-4-7)
+        └─ agent-memory.yaml               (state.redis, used as agentic memory)
+
+  Two runtime modes, same agent image:
+
+  1. Local dev — dotnet run --project AppHost: Aspire spins up Redis + the agent + a Dapr sidecar via Aspire.Hosting.Dapr (WithDaprSidecar), wires components from
+  deploy/dapr/components/, and gives you the Aspire dashboard.
+  2. Remote — docker compose up: four containers — agent (port 8085 published), daprd sidecar (sharing the agent's network namespace), redis, and placement. Same component YAMLs, mounted
+   read-only.
+   
+   
+   Claude Code registration (one-time, on any machine that should call this remote agent):
+
+  claude mcp add --transport http --scope user dotnet-docker-expert \
+    http://<deployed-host>:8085/mcp
+
+  After that, any Claude Code session can invoke the remote agent through the registered MCP tool — that's what "callable as a remote subagent" means in practice. A short kagent/ analog
+  (an MCP-aware Agent CRD pointing at the same endpoint) can be added later as the third mirror, but isn't part of this task.
+
