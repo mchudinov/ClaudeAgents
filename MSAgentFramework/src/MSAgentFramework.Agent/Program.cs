@@ -13,10 +13,12 @@ builder.Services.AddSingleton(_ => new DaprClientBuilder().Build());
 builder.Services.AddDaprChatClient("anthropic-llm", configure: _ => { });
 builder.Services.AddSingleton<IAgentSessionStore, DaprAgentSessionStore>();
 
+var persona = Persona.Load("dotnet-csharp-expert");
+
 builder.Services.AddSingleton<AIAgent>(sp => new ChatClientAgent(
     chatClient: sp.GetRequiredService<IChatClient>(),
-    instructions: Persona.DotnetCsharpExpert,
-    name: Persona.Name,
+    instructions: persona.Instructions,
+    name: persona.Name,
     description: "Idiomatic modern C# / .NET advisory agent. No filesystem or shell access."));
 
 builder.Services
