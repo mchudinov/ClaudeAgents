@@ -1,3 +1,4 @@
+using Dapr.AI.Conversation.Extensions;
 using Dapr.AI.Microsoft.Extensions;
 using Dapr.Client;
 using Microsoft.Agents.AI;
@@ -10,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddSingleton(_ => new DaprClientBuilder().Build());
+builder.Services.AddDaprConversationClient();
 builder.Services.AddDaprChatClient("anthropic-llm", configure: _ => { });
 builder.Services.AddSingleton<IAgentSessionStore, DaprAgentSessionStore>();
 
