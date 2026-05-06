@@ -15,7 +15,7 @@ builder.Services.AddSingleton<IAgentSessionStore, DaprAgentSessionStore>();
 
 var persona = Persona.Load("dotnet-csharp-expert");
 
-builder.Services.AddSingleton<AIAgent>(sp => new ChatClientAgent(
+builder.Services.AddScoped<AIAgent>(sp => new ChatClientAgent(
     chatClient: sp.GetRequiredService<IChatClient>(),
     instructions: persona.Instructions,
     name: persona.Name,

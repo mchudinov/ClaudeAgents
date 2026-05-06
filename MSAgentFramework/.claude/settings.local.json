@@ -15,7 +15,10 @@
       "Bash(curl -s -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -H \"Mcp-Session-Id: probe1\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')",
       "Bash(curl -s -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -H \"Mcp-Session-Id: probe1\" -d '{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}')",
       "Bash(curl -s -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -H \"Mcp-Session-Id: probe1\" -d '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}')",
-      "Bash(curl -s -D - -o /dev/null -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')"
+      "Bash(curl -s -D - -o /dev/null -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri http://localhost:8085/health -UseBasicParsing -TimeoutSec 3; \"$\\($r.StatusCode\\) $\\($r.Content\\)\" } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(claude mcp *)",
+      "mcp__dotnet-csharp-expert__ask_dotnet_csharp_expert"
     ]
   }
 }
