@@ -11,7 +11,11 @@ spec:
         name: ANTHROPIC_API_KEY
         key: ANTHROPIC_API_KEY
     - name: model
-      value: claude-opus-4-7
+      # Dapr's conversation.anthropic component sends `temperature` on every
+      # request and offers no metadata switch to suppress it. claude-opus-4-7
+      # rejects requests that include `temperature` (HTTP 400, deprecated for
+      # that model), so stay on a model that still accepts it.
+      value: claude-sonnet-4-6
     - name: cacheTTL
       value: 10m
 auth:
