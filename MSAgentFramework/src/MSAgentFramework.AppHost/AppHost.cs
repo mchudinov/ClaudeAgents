@@ -10,11 +10,8 @@ var anthropicApiKey = builder.Configuration["ANTHROPIC_API_KEY"]
 // component reads ANTHROPIC_API_KEY from there, so it must be present here too.
 Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", anthropicApiKey);
 
-var redis = builder.AddRedis("redis").WithDataVolume();
-
 var agent = builder.AddProject<Projects.MSAgentFramework_Agent>("agent")
     .WithEnvironment("ANTHROPIC_API_KEY", anthropicApiKey)
-    .WithReference(redis)
     .WithDaprSidecar(new DaprSidecarOptions
     {
         AppId = "dotnet-csharp-agent",
