@@ -10,6 +10,7 @@
     <PackageReference Include="Dapr.AI.Microsoft.Extensions" Version="1.17.9" />
     <PackageReference Include="Dapr.Client" Version="1.17.9" />
     <PackageReference Include="Microsoft.Agents.AI" Version="1.3.0" />
+    <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.2.0" />
   </ItemGroup>
 

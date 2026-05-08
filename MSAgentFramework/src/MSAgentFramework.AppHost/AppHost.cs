@@ -10,6 +10,9 @@ var anthropicApiKey = builder.Configuration["ANTHROPIC_API_KEY"]
 // component reads ANTHROPIC_API_KEY from there, so it must be present here too.
 Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", anthropicApiKey);
 
+var context7ApiKey = builder.Configuration["CONTEXT7_API_KEY"]
+    ?? Environment.GetEnvironmentVariable("CONTEXT7_API_KEY");
+
 var agent = builder.AddProject<Projects.MSAgentFramework_Agent>("agent")
     .WithEnvironment("ANTHROPIC_API_KEY", anthropicApiKey)
     .WithDaprSidecar(new DaprSidecarOptions
@@ -18,6 +21,11 @@ var agent = builder.AddProject<Projects.MSAgentFramework_Agent>("agent")
         AppPort = 8085,
         ResourcesPaths = ["../../../deploy/dapr/components"]
     });
+
+if (!string.IsNullOrWhiteSpace(context7ApiKey))
+{
+    agent.WithEnvironment("CONTEXT7_API_KEY", context7ApiKey);
+}
 
 builder.AddContainer("redisinsight", "redis/redisinsight")
     .WithImageTag("latest")
