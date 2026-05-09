@@ -1,5 +1,4 @@
-using Dapr.AI.Conversation.Extensions;
-using Dapr.AI.Microsoft.Extensions;
+using Anthropic.SDK;
 using Dapr.Client;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -13,8 +12,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddSingleton(_ => new DaprClientBuilder().Build());
-builder.Services.AddDaprConversationClient();
-builder.Services.AddDaprChatClient("anthropic-llm", configure: _ => { });
+
+// Direct Anthropic IChatClient. Bypasses Dapr's conversation API so we
+// control tool_choice / parallel-tool-use and can target claude-opus-4-7,
+// which rejects the `temperature` Dapr always sends. Dapr is still used
+// for state (agent-memory) and secrets. AnthropicClient reads the API key
+// from ANTHROPIC_API_KEY (set by the AppHost).
+builder.Services.AddHttpClient<AnthropicClient>();
+var modelId = builder.Configuration["ANTHROPIC_MODEL"] ?? "claude-opus-4-7";
+builder.Services.AddSingleton<IChatClient>(sp =>
+    sp.GetRequiredService<AnthropicClient>().Messages
+        .AsBuilder()
+        .ConfigureOptions(o => o.ModelId ??= modelId)
+        .Build());
+
 builder.Services.AddSingleton<IAgentSessionStore, DaprAgentSessionStore>();
 
 var persona = Persona.Load("dotnet-csharp-expert");
