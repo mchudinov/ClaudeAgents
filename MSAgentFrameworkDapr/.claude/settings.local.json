@@ -18,7 +18,29 @@
       "Bash(curl -s -D - -o /dev/null -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0\"}}}')",
       "PowerShell(try { $r = Invoke-WebRequest -Uri http://localhost:8085/health -UseBasicParsing -TimeoutSec 3; \"$\\($r.StatusCode\\) $\\($r.Content\\)\" } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
       "PowerShell(claude mcp *)",
-      "mcp__dotnet-csharp-expert__ask_dotnet_csharp_expert"
+      "mcp__dotnet-csharp-expert__ask_dotnet_csharp_expert",
+      "Bash(curl -sS -m 5 -X POST http://localhost:8085/mcp -H \"Content-Type: application/json\" -H \"Accept: application/json, text/event-stream\" -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}')",
+      "Bash(find /c/Users/mikael/.nuget/packages/dapr.ai* -maxdepth 4 -type d)",
+      "WebFetch(domain:context7.com)",
+      "Bash(git *)",
+      "Read(//g/projects/test/ClaudeAgents/**)",
+      "Bash(curl -s \"https://api.nuget.org/v3-flatcontainer/anthropic.sdk/index.json\")",
+      "Bash(dotnet list *)",
+      "Bash(curl -s \"https://api.nuget.org/v3/registration5-gz-semver2/anthropic.sdk/5.10.0.json\")",
+      "Bash(curl -s \"https://api.nuget.org/v3/registration5-gz-semver2/microsoft.extensions.ai.abstractions/index.json\")",
+      "Bash(curl *)",
+      "Bash(dotnet nuget *)",
+      "Bash([ -d \"C:/Users/mikael/.nuget/packages/microsoft.extensions.ai.abstractions/$v\" ])",
+      "Bash(python -c \"import sys,json,gzip; data=json.load\\(sys.stdin\\); [print\\(p['catalogEntry']['version']\\) for page in data['items'] for p in page.get\\('items',[]\\)]\")",
+      "Bash(unzip -l /tmp/meai-10.3.0.nupkg)",
+      "Bash(unzip -o meai-10.3.0.nupkg \"lib/net10.0/*\")",
+      "Bash(unzip -o meai-10.5.1.nupkg \"lib/net10.0/*\")",
+      "Bash(unzip -o meai-abs-10.3.0.nupkg \"lib/net10.0/*\" -d abs-10.3.0)",
+      "Bash(unzip -o meai-abs-10.5.1.nupkg \"lib/net10.0/*\" -d abs-10.5.1)",
+      "Bash(rm -rf abs-__TRACKED_VAR__)",
+      "Bash(unzip -q -o meai-abs-__TRACKED_VAR__.nupkg lib/net10.0/Microsoft.Extensions.AI.Abstractions.xml -d abs-__TRACKED_VAR__)",
+      "Bash(grep -c P:Microsoft.Extensions.AI.HostedMcpServerTool.AuthorizationToken abs-__TRACKED_VAR__/lib/net10.0/Microsoft.Extensions.AI.Abstractions.xml)",
+      "Bash(dotnet restore *)"
     ]
   }
 }
