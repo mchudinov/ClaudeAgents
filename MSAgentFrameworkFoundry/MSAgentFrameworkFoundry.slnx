@@ -4,11 +4,13 @@
     <Project Path="src/Foundry.Agents.Developer/Foundry.Agents.Developer.csproj" />
     <Project Path="src/Foundry.Agents.Memory/Foundry.Agents.Memory.csproj" />
     <Project Path="src/Foundry.Agents.TestUtils/Foundry.Agents.TestUtils.csproj" />
+    <Project Path="src/Foundry.Agents.Reviewer/Foundry.Agents.Reviewer.csproj" />
     <Project Path="src/Foundry.Agents.ServiceDefaults/Foundry.Agents.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Foundry.Agents.Contracts.Tests/Foundry.Agents.Contracts.Tests.csproj" />
     <Project Path="tests/Foundry.Agents.Developer.Tests/Foundry.Agents.Developer.Tests.csproj" />
     <Project Path="tests/Foundry.Agents.Memory.Tests/Foundry.Agents.Memory.Tests.csproj" />
+    <Project Path="tests/Foundry.Agents.Reviewer.Tests/Foundry.Agents.Reviewer.Tests.csproj" />
   </Folder>
 </Solution>
