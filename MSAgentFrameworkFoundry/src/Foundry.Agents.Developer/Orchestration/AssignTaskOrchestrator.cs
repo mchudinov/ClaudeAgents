@@ -53,6 +53,23 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
         var effort = _effort.Resolve(request.Effort, thread.Effort);
         thread.Effort = effort;
 
+        const string RetryReviewSentinel = "retry-review";
+
+        bool isResume = thread.PrNumber.HasValue
+            && (string.IsNullOrWhiteSpace(request.TaskDescription)
+                || string.Equals(request.TaskDescription.Trim(), RetryReviewSentinel, StringComparison.OrdinalIgnoreCase));
+
+        if (isResume)
+        {
+            var chatClient = _chatFactory.Create();
+            var chatOptions = ChatClientFactory.ChatOptionsFor(effort);
+            var prHtmlUrl = $"https://github.com/{request.GithubRepo}/pull/{thread.PrNumber}";
+            return await RunReviewLoopAsync(
+                thread, threadId, effort, chatClient, chatOptions,
+                workDir: null, branch: null, prNumber: thread.PrNumber!.Value, prHtmlUrl: prHtmlUrl,
+                request: request, ct: ct);
+        }
+
         var workDir = Path.Combine(_options.WorkspaceRoot, threadId);
         var cloneUrl = $"https://github.com/{request.GithubRepo}.git";
         var clone = await _git.CloneAsync(new CloneRequest(cloneUrl, workDir, Branch: null), ct);
@@ -65,12 +82,12 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
             return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"checkout failed: {checkoutR.StdErr}", Array.Empty<string>());
 
         thread.Messages.Add(new ThreadMessage("user", request.TaskDescription));
-        var chatClient = _chatFactory.Create();
-        var chatOptions = ChatClientFactory.ChatOptionsFor(effort);
+        var chatClient2 = _chatFactory.Create();
+        var chatOptions2 = ChatClientFactory.ChatOptionsFor(effort);
         var chatMessages = thread.Messages
             .Select(m => new ChatMessage(new ChatRole(m.Role), m.Content))
             .ToList();
-        var response = await chatClient.GetResponseAsync(chatMessages, chatOptions, ct);
+        var response = await chatClient2.GetResponseAsync(chatMessages, chatOptions2, ct);
         thread.Messages.Add(new ThreadMessage("assistant", response.Text));
 
         var restore = await _git.DotnetRestoreAsync(workDir, _options.SolutionPath, ct);
@@ -112,7 +129,24 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
             ct);
         thread.PrNumber = pr.Number;
         await _store.SaveAsync(thread, ct);
+        return await RunReviewLoopAsync(
+            thread, threadId, effort, chatClient2, chatOptions2,
+            workDir, branch, pr.Number, pr.HtmlUrl, request, ct);
+    }
 
+    private async Task<AssignTaskResult> RunReviewLoopAsync(
+        AgentThread thread,
+        string threadId,
+        EffortLevel effort,
+        IChatClient chatClient,
+        ChatOptions chatOptions,
+        string? workDir,
+        string? branch,
+        int prNumber,
+        string prHtmlUrl,
+        AssignTaskRequest request,
+        CancellationToken ct)
+    {
         string? reviewThreadId = thread.LinkedReviewThreadId;
         ReviewResult? lastReview = null;
         for (int round = 1; round <= _options.MaxReviewRounds; round++)
@@ -123,11 +157,11 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
             try
             {
                 lastReview = await _reviewer.ReviewPullRequestAsync(
-                    new ReviewRequest(request.GithubRepo, pr.Number, reviewThreadId, effort), ct);
+                    new ReviewRequest(request.GithubRepo, prNumber, reviewThreadId, effort), ct);
             }
             catch (Exception ex)
             {
-                return new AssignTaskResult(threadId, AssignTaskStatus.Error, pr.HtmlUrl,
+                return new AssignTaskResult(threadId, AssignTaskStatus.Error, prHtmlUrl,
                     $"reviewer unreachable after retries: {ex.Message}", Array.Empty<string>());
             }
             reviewThreadId = lastReview.ThreadId;
@@ -137,16 +171,22 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
             {
                 var compactor = new Compactor.ThreadCompactor(_store, _chatFactory);
                 var summary = await compactor.CompactAsync(thread, effort, ct);
-                return new AssignTaskResult(threadId, AssignTaskStatus.Approved, pr.HtmlUrl, summary, Array.Empty<string>());
+                return new AssignTaskResult(threadId, AssignTaskStatus.Approved, prHtmlUrl, summary, Array.Empty<string>());
             }
             if (lastReview.Verdict == ReviewVerdict.RejectedBlocking)
             {
                 await _store.SaveAsync(thread, ct);
-                return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, pr.HtmlUrl,
+                return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, prHtmlUrl,
                     lastReview.Summary, lastReview.Comments.Select(c => c.Body).ToList());
             }
 
-            // ChangesRequested — feed comments back, re-run build+test+push
+            if (workDir is null)
+            {
+                await _store.SaveAsync(thread, ct);
+                return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, prHtmlUrl,
+                    lastReview.Summary, lastReview.Comments.Select(c => c.Body).ToList());
+            }
+
             var feedback = "Please address these review comments:\n" +
                 string.Join("\n", lastReview.Comments.Select(c => $"- {c.Body}"));
             thread.Messages.Add(new ThreadMessage("user", feedback));
@@ -157,19 +197,19 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
 
             var r2 = await _git.DotnetRestoreAsync(workDir, _options.SolutionPath, ct);
             if (r2.ExitCode != 0)
-                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, r2.StdErr, Array.Empty<string>());
+                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, prHtmlUrl, r2.StdErr, Array.Empty<string>());
             var b2 = await _git.DotnetBuildAsync(workDir, _options.SolutionPath, ct);
             if (b2.ExitCode != 0)
-                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, b2.StdErr, Array.Empty<string>());
+                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, prHtmlUrl, b2.StdErr, Array.Empty<string>());
             var t2 = await _git.DotnetTestAsync(workDir, _options.SolutionPath, ct);
             if (t2.ExitCode != 0)
-                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, t2.StdErr, Array.Empty<string>());
+                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, prHtmlUrl, t2.StdErr, Array.Empty<string>());
             await _git.CommitAllAsync(workDir, $"address review round {round}", ct);
-            await _git.PushAsync(workDir, branch, ct);
+            await _git.PushAsync(workDir, branch!, ct);
         }
 
         await _store.SaveAsync(thread, ct);
-        return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, pr.HtmlUrl,
+        return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, prHtmlUrl,
             lastReview!.Summary, lastReview.Comments.Select(c => c.Body).ToList());
     }
 

@@ -102,6 +102,42 @@ public sealed class AssignTaskOrchestratorTests
             Arg.Any<CancellationToken>());
         result.PrUrl.Should().Be("https://github.com/octocat/hello/pull/142");
     }
+
+    [Fact]
+    public async Task Resume_with_retry_review_sentinel_skips_clone_build_test_push_and_calls_reviewer_directly()
+    {
+        var git = new FakeGitWorkspace();
+        var store = Substitute.For<ICosmosThreadStore>();
+        store.LoadOrCreateAsync(default!, default!, default!, default).ReturnsForAnyArgs(ci => new AgentThread
+        {
+            Id = ci.ArgAt<string>(0), AgentRole = "developer", CreatedUtc = DateTimeOffset.UtcNow,
+            Messages = { new ThreadMessage("system", "# p") }, ETag = "e",
+            GithubRepo = "octocat/hello", PrNumber = 142, ReviewRound = 1,
+            LinkedReviewThreadId = "rt-1",
+        });
+        var chat = new FakeChatClient();
+        chat.QueueResponse("compact summary of work done");
+        var gh = Substitute.For<IGitHubMcpClient>();
+        var reviewer = Substitute.For<IReviewerMcpClient>();
+        reviewer.ReviewPullRequestAsync(default!, default).ReturnsForAnyArgs(
+            new ReviewResult("rt-1", ReviewVerdict.Approved, Array.Empty<ReviewComment>(), "lgtm"));
+
+        var orch = new AssignTaskOrchestrator(store, git, gh, reviewer,
+            new TestChatClientFactory(chat), new EffortResolver(EffortLevel.Xhigh),
+            new OrchestratorOptions { WorkspaceRoot = "/tmp/work", MaxReviewRounds = 3, DefaultBranch = "main" },
+            new DeterministicUlidGenerator(), NullLogger<AssignTaskOrchestrator>.Instance);
+
+        var result = await orch.HandleAsync(
+            new AssignTaskRequest("octocat/hello", "retry-review", "existing-thread", null), default);
+
+        result.Status.Should().Be(AssignTaskStatus.Approved);
+        git.Commands.Should().BeEmpty();
+        chat.Calls.Should().HaveCount(1);
+        await gh.DidNotReceiveWithAnyArgs().CreatePullRequestAsync(default!, default);
+        await reviewer.Received(1).ReviewPullRequestAsync(
+            Arg.Is<ReviewRequest>(r => r.PrNumber == 142 && r.ThreadId == "rt-1"),
+            Arg.Any<CancellationToken>());
+    }
 }
 
 internal sealed class TestChatClientFactory : IChatClientFactory
