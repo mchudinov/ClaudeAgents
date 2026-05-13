@@ -508,8 +508,12 @@ public interface IGitWorkspace
     Task<ShellResult> CheckoutNewBranchAsync(string repoPath, string branch, CancellationToken ct);
     Task<ShellResult> CommitAllAsync(string repoPath, string message, CancellationToken ct);
     Task<ShellResult> PushAsync(string repoPath, string branch, CancellationToken ct);
-    Task<ShellResult> DotnetBuildAsync(string repoPath, CancellationToken ct);
-    Task<ShellResult> DotnetTestAsync(string repoPath, CancellationToken ct);
+    /// <summary>Run <c>dotnet restore</c>. <paramref name="solutionPath"/> may be null to restore the working directory.</summary>
+    Task<ShellResult> DotnetRestoreAsync(string repoPath, string? solutionPath, CancellationToken ct);
+    /// <summary>Run <c>dotnet build --no-restore</c> per the Developer persona's mandated three-step sequence.</summary>
+    Task<ShellResult> DotnetBuildAsync(string repoPath, string? solutionPath, CancellationToken ct);
+    /// <summary>Run <c>dotnet test --no-build</c> per the Developer persona's mandated three-step sequence.</summary>
+    Task<ShellResult> DotnetTestAsync(string repoPath, string? solutionPath, CancellationToken ct);
 }
 ```
 
@@ -545,11 +549,17 @@ public sealed class ProcessGitWorkspace : IGitWorkspace
     public Task<ShellResult> PushAsync(string repoPath, string branch, CancellationToken ct)
         => RunAsync("git", $"push -u origin \"{branch}\"", repoPath, ct);
 
-    public Task<ShellResult> DotnetBuildAsync(string repoPath, CancellationToken ct)
-        => RunAsync("dotnet", "build --nologo", repoPath, ct);
+    public Task<ShellResult> DotnetRestoreAsync(string repoPath, string? solutionPath, CancellationToken ct)
+        => RunAsync("dotnet", $"restore --nologo{TargetArg(solutionPath)}", repoPath, ct);
 
-    public Task<ShellResult> DotnetTestAsync(string repoPath, CancellationToken ct)
-        => RunAsync("dotnet", "test --nologo --no-build", repoPath, ct);
+    public Task<ShellResult> DotnetBuildAsync(string repoPath, string? solutionPath, CancellationToken ct)
+        => RunAsync("dotnet", $"build --nologo --no-restore{TargetArg(solutionPath)}", repoPath, ct);
+
+    public Task<ShellResult> DotnetTestAsync(string repoPath, string? solutionPath, CancellationToken ct)
+        => RunAsync("dotnet", $"test --nologo --no-build{TargetArg(solutionPath)}", repoPath, ct);
+
+    private static string TargetArg(string? solutionPath) =>
+        string.IsNullOrWhiteSpace(solutionPath) ? "" : $" \"{solutionPath}\"";
 
     private static async Task<ShellResult> RunAsync(string file, string args, string? workingDir, CancellationToken ct)
     {
@@ -601,8 +611,9 @@ public sealed class FakeGitWorkspace : IGitWorkspace
     public Task<ShellResult> CheckoutNewBranchAsync(string repoPath, string branch, CancellationToken ct) { Commands.Add($"checkout -b {branch} in {repoPath}"); return Task.FromResult(Pop()); }
     public Task<ShellResult> CommitAllAsync(string repoPath, string message, CancellationToken ct) { Commands.Add($"commit -m {message} in {repoPath}"); return Task.FromResult(Pop()); }
     public Task<ShellResult> PushAsync(string repoPath, string branch, CancellationToken ct) { Commands.Add($"push {branch} in {repoPath}"); return Task.FromResult(Pop()); }
-    public Task<ShellResult> DotnetBuildAsync(string repoPath, CancellationToken ct) { Commands.Add($"dotnet build in {repoPath}"); return Task.FromResult(Pop()); }
-    public Task<ShellResult> DotnetTestAsync(string repoPath, CancellationToken ct) { Commands.Add($"dotnet test in {repoPath}"); return Task.FromResult(Pop()); }
+    public Task<ShellResult> DotnetRestoreAsync(string repoPath, string? solutionPath, CancellationToken ct) { Commands.Add($"dotnet restore {solutionPath ?? "<auto>"} in {repoPath}"); return Task.FromResult(Pop()); }
+    public Task<ShellResult> DotnetBuildAsync(string repoPath, string? solutionPath, CancellationToken ct) { Commands.Add($"dotnet build --no-restore {solutionPath ?? "<auto>"} in {repoPath}"); return Task.FromResult(Pop()); }
+    public Task<ShellResult> DotnetTestAsync(string repoPath, string? solutionPath, CancellationToken ct) { Commands.Add($"dotnet test --no-build {solutionPath ?? "<auto>"} in {repoPath}"); return Task.FromResult(Pop()); }
 }
 ```
 
@@ -903,7 +914,9 @@ public sealed class AssignTaskOrchestratorTests
     {
         var git = new FakeGitWorkspace();
         git.Responses.Enqueue(new ShellResult(0, "", ""));                // clone
-        git.Responses.Enqueue(new ShellResult(1, "", "build error CS1002")); // dotnet build fails
+        git.Responses.Enqueue(new ShellResult(0, "", ""));                // checkout -b (branch-first per persona rule 6)
+        git.Responses.Enqueue(new ShellResult(0, "", ""));                // dotnet restore
+        git.Responses.Enqueue(new ShellResult(1, "", "build error CS1002")); // dotnet build --no-restore fails
 
         var store = Substitute.For<ICosmosThreadStore>();
         store.LoadOrCreateAsync(default!, default!, default!, default)
@@ -973,6 +986,12 @@ public sealed class OrchestratorOptions
     public required string WorkspaceRoot { get; init; }
     public required int MaxReviewRounds { get; init; }
     public required string DefaultBranch { get; init; }
+    /// <summary>
+    /// Optional solution path passed to <c>dotnet restore/build/test</c>. Null = working dir
+    /// (only safe when the repo has a single .sln/.slnx; otherwise the orchestrator surfaces
+    /// the ambiguity per Developer persona rule 2 — multi-solution repos must set this).
+    /// </summary>
+    public string? SolutionPath { get; init; }
 }
 ```
 
@@ -1034,6 +1053,14 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
         if (clone.ExitCode != 0)
             return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"clone failed: {clone.StdErr}", []);
 
+        // Branch-first per Developer persona rule 6: create + check out the agent branch
+        // BEFORE any model-driven edits land in the working tree.
+        var branch = BranchNameFor(threadId, request.TaskDescription);
+        thread.LinkedReviewThreadId ??= null;
+        var checkoutR = await _git.CheckoutNewBranchAsync(workDir, branch, ct);
+        if (checkoutR.ExitCode != 0)
+            return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"checkout failed: {checkoutR.StdErr}", []);
+
         // Run the model (single round in this task; iteration loop added in Task 11).
         thread.Messages.Add(new ThreadMessage("user", request.TaskDescription));
         var chatClient = _chatFactory.Create();
@@ -1043,23 +1070,51 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
             chatOptions, ct);
         thread.Messages.Add(new ThreadMessage("assistant", response.Text));
 
-        // Build/test gate.
-        var build = await _git.DotnetBuildAsync(workDir, ct);
+        // Build/test gate — Developer persona rule 1: restore, build --no-restore, test --no-build.
+        var restore = await _git.DotnetRestoreAsync(workDir, _options.SolutionPath, ct);
+        if (restore.ExitCode != 0)
+        {
+            await _store.SaveAsync(thread, ct);
+            return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, null, restore.StdErr, []);
+        }
+        var build = await _git.DotnetBuildAsync(workDir, _options.SolutionPath, ct);
         if (build.ExitCode != 0)
         {
             await _store.SaveAsync(thread, ct);
             return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, null, build.StdErr, []);
         }
-        var test = await _git.DotnetTestAsync(workDir, ct);
+        var test = await _git.DotnetTestAsync(workDir, _options.SolutionPath, ct);
         if (test.ExitCode != 0)
         {
             await _store.SaveAsync(thread, ct);
             return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, null, test.StdErr, []);
         }
 
-        // Push + PR + review loop wired in Tasks 9 and 11.
+        // Push + PR + review loop wired in Tasks 9 and 11. (The 'branch' local stays in scope for Task 9.)
         await _store.SaveAsync(thread, ct);
         return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, "push/PR/review not yet wired", []);
+    }
+
+    /// <summary>
+    /// Developer persona rule 7: prefer the first 8 chars of the thread id; otherwise
+    /// slug-from-title + short hash. Result is filesystem-safe, ≤ 40 chars after the
+    /// "agent/" prefix.
+    /// </summary>
+    private static string BranchNameFor(string threadId, string taskDescription)
+    {
+        if (!string.IsNullOrWhiteSpace(threadId) && threadId.Length >= 8)
+            return $"agent/{threadId[..8].ToLowerInvariant()}";
+
+        var slug = new string(taskDescription.ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
+        while (slug.Contains("--", StringComparison.Ordinal)) slug = slug.Replace("--", "-");
+        slug = slug.Trim('-');
+        if (slug.Length > 28) slug = slug[..28].TrimEnd('-');
+
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes($"{threadId}|{taskDescription}"));
+        var shortHash = Convert.ToHexString(hash, 0, 4).ToLowerInvariant();
+        return $"agent/{slug}-{shortHash}";
     }
 }
 ```
@@ -1107,9 +1162,10 @@ public async Task Pushes_branch_and_creates_PR_when_build_and_test_pass()
 {
     var git = new FakeGitWorkspace();
     git.Responses.Enqueue(new ShellResult(0, "", "")); // clone
-    git.Responses.Enqueue(new ShellResult(0, "", "")); // build
-    git.Responses.Enqueue(new ShellResult(0, "", "")); // test
-    git.Responses.Enqueue(new ShellResult(0, "", "")); // checkout -b
+    git.Responses.Enqueue(new ShellResult(0, "", "")); // checkout -b (branch-first per persona rule 6)
+    git.Responses.Enqueue(new ShellResult(0, "", "")); // dotnet restore
+    git.Responses.Enqueue(new ShellResult(0, "", "")); // dotnet build --no-restore
+    git.Responses.Enqueue(new ShellResult(0, "", "")); // dotnet test --no-build
     git.Responses.Enqueue(new ShellResult(0, "", "")); // commit
     git.Responses.Enqueue(new ShellResult(0, "", "")); // push
 
@@ -1151,15 +1207,10 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implement push + create_pull_request in the orchestrator**
 
-Replace the "push/PR not wired" tail of `HandleAsync` with:
+Replace the "push/PR not wired" tail of `HandleAsync` with the block below. Note that `branch` is now in scope from Task 8 (`BranchNameFor(threadId, request.TaskDescription)`) and the `git checkout -b` already ran right after clone — so this block commits, pushes, opens the PR, and starts the review loop only.
 
 ```csharp
-// Push the branch and open the PR.
-var branch = $"agent/{threadId[^8..].ToLowerInvariant()}";
-var checkoutR = await _git.CheckoutNewBranchAsync(workDir, branch, ct);
-if (checkoutR.ExitCode != 0)
-    return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"checkout failed: {checkoutR.StdErr}", []);
-
+// Commit + push (the agent branch was created in the branch-first step right after clone).
 var commitR = await _git.CommitAllAsync(workDir, request.TaskDescription, ct);
 if (commitR.ExitCode != 0)
     return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"commit failed: {commitR.StdErr}", []);
@@ -1504,10 +1555,14 @@ for (int round = 1; round <= _options.MaxReviewRounds; round++)
         thread.Messages.Select(m => new ChatMessage(new ChatRole(m.Role), m.Content)), chatOptions, ct);
     thread.Messages.Add(new ThreadMessage("assistant", amendResp.Text));
 
-    var b2 = await _git.DotnetBuildAsync(workDir, ct);
+    // Re-run the three-step sequence per Developer persona rule 1 before each push.
+    var r2 = await _git.DotnetRestoreAsync(workDir, _options.SolutionPath, ct);
+    if (r2.ExitCode != 0)
+        return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, r2.StdErr, []);
+    var b2 = await _git.DotnetBuildAsync(workDir, _options.SolutionPath, ct);
     if (b2.ExitCode != 0)
         return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, b2.StdErr, []);
-    var t2 = await _git.DotnetTestAsync(workDir, ct);
+    var t2 = await _git.DotnetTestAsync(workDir, _options.SolutionPath, ct);
     if (t2.ExitCode != 0)
         return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, t2.StdErr, []);
     await _git.CommitAllAsync(workDir, $"address review round {round}", ct);
