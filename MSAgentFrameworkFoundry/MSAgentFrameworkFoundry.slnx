@@ -1,1 +1,5 @@
-<Solution />
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Foundry.Agents.Contracts/Foundry.Agents.Contracts.csproj" />
+  </Folder>
+</Solution>
