@@ -1,6 +1,15 @@
 using Foundry.Agents.Contracts;
+using Microsoft.Extensions.AI;
 
-namespace Foundry.Agents.Developer;
+namespace Foundry.Agents.Contracts.Chat;
+
+public interface IChatClientFactory { IChatClient Create(); }
+
+public sealed class FoundryChatOptions
+{
+    public required string Endpoint { get; init; }
+    public required string DeploymentName { get; init; }
+}
 
 public sealed class EffortResolver
 {

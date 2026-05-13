@@ -1,17 +1,10 @@
 using Azure.Core;
 using Azure.Identity;
 using Foundry.Agents.Contracts;
+using Foundry.Agents.Contracts.Chat;
 using Microsoft.Extensions.AI;
 
 namespace Foundry.Agents.Developer;
-
-public interface IChatClientFactory { IChatClient Create(); }
-
-public sealed class FoundryChatOptions
-{
-    public required string Endpoint { get; init; }
-    public required string DeploymentName { get; init; }
-}
 
 public sealed class ChatClientFactory : IChatClientFactory
 {
