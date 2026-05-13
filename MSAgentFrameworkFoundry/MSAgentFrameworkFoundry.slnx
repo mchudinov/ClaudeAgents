@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Foundry.Agents.Contracts/Foundry.Agents.Contracts.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Foundry.Agents.Contracts.Tests/Foundry.Agents.Contracts.Tests.csproj" />
+  </Folder>
 </Solution>

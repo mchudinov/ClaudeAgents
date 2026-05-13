@@ -34,6 +34,7 @@
     <PackageVersion Include="FluentAssertions" Version="7.0.0" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="Testcontainers.CosmosDb" Version="4.0.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <!-- Polly (used in Plan 2) -->
     <PackageVersion Include="Polly" Version="8.5.0" />
     <!-- Aspire (used in Plan 2) -->
