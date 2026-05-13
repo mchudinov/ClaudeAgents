@@ -94,9 +94,39 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
             return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, null, test.StdErr, Array.Empty<string>());
         }
 
+        var commitR = await _git.CommitAllAsync(workDir, request.TaskDescription, ct);
+        if (commitR.ExitCode != 0)
+            return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"commit failed: {commitR.StdErr}", Array.Empty<string>());
+
+        var pushR = await _git.PushAsync(workDir, branch, ct);
+        if (pushR.ExitCode != 0)
+            return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, $"push failed (branch '{branch}'): {pushR.StdErr}", Array.Empty<string>());
+
+        var pr = await _github.CreatePullRequestAsync(
+            new CreatePrRequest(
+                request.GithubRepo,
+                branch,
+                _options.DefaultBranch,
+                Title: request.TaskDescription.Length > 72 ? request.TaskDescription[..72] : request.TaskDescription,
+                Body: $"Automated PR from Foundry Developer Agent.\n\nTask: {request.TaskDescription}\n\nThread: {threadId}"),
+            ct);
+        thread.PrNumber = pr.Number;
         await _store.SaveAsync(thread, ct);
-        // Push + PR + review loop added in Tasks 9 and 11.
-        return new AssignTaskResult(threadId, AssignTaskStatus.Error, null, "push/PR/review not yet wired", Array.Empty<string>());
+
+        // Review loop wired in Task 11. For now: try once, propagate failure as Error.
+        try
+        {
+            var review = await _reviewer.ReviewPullRequestAsync(
+                new ReviewRequest(request.GithubRepo, pr.Number, ThreadId: null, Effort: null), ct);
+            return new AssignTaskResult(threadId,
+                review.Verdict == ReviewVerdict.Approved ? AssignTaskStatus.Approved : AssignTaskStatus.ReviewFailed,
+                pr.HtmlUrl, review.Summary, review.Comments.Select(c => c.Body).ToList());
+        }
+        catch (Exception ex)
+        {
+            return new AssignTaskResult(threadId, AssignTaskStatus.Error, pr.HtmlUrl,
+                $"review attempt failed: {ex.Message}", Array.Empty<string>());
+        }
     }
 
     private static string BranchNameFor(string threadId, string taskDescription)
