@@ -24,6 +24,11 @@ Scope per `docs/idea.md`: build **two cooperating agents** — a .NET 10 C# *Dev
 2. **`../MSAgentFrameworkDapr/README.md`** and `../MSAgentFrameworkDapr/src/` — structural reference for: `.slnx` + `src/` + `tests/` layout, `ChatClientAgent` wiring with `Anthropic.SDK`, MCP tool registration, persona-as-embedded-markdown pattern, and the session-store abstraction. Use these patterns unless the Foundry deployment requires deviating (e.g. memory store will be Foundry-native, not Dapr).
 3. **`../CLAUDE.md`** — repo-wide context (Docker dev container, kagent flavor, port 8081 convention). The port-8081 rule applies only to the Docker dev shell, not to this subproject's runtime, which targets Azure AI Foundry.
 
+## Development methodology
+
+- **Use TDD** (test-driven development) as the software development methodology: write a failing test, make it pass with the minimum change, then refactor. Add tests before production code, not after.
+- **Always use the context7 MCP server** for any development documentation search (libraries, frameworks, SDKs, APIs, CLI tools). Prefer it over web search and over relying on training-data recall, even for well-known libraries — versions and APIs drift.
+
 ## Non-negotiable requirements from `docs/idea.md`
 
 - **Model:** Anthropic `claude-opus-4-7` for both agents.
