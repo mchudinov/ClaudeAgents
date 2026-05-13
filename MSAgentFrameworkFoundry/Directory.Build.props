@@ -9,4 +9,15 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Suppress audit warning for Newtonsoft.Json 10.0.2 (GHSA-5crp-9r3c-p9vr) brought in
+         transitively by Microsoft.Azure.Cosmos 3.43.1. We have no direct control over this
+         transitive dep; suppressing so TreatWarningsAsErrors does not block builds. -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-5crp-9r3c-p9vr" />
+    <!-- Suppress moderate CVEs in OpenTelemetry.Api 1.10.0 (pinned per spec; no newer pin available). -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-8785-wc3w-h8q6" />
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-g94r-2vxg-569j" />
+    <!-- Suppress moderate CVE in OpenTelemetry.Exporter.OpenTelemetryProtocol 1.10.0 (pinned per spec). -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-4625-4j76-fww9" />
+  </ItemGroup>
 </Project>
