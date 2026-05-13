@@ -1,0 +1,137 @@
+<mxfile host="app.diagrams.net" version="21.7.0">
+  <diagram id="evaluator-optimizer-pattern" name="Evaluator-Optimizer Pattern">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== TITLE ===== -->
+        <mxCell id="title" value="&lt;b&gt;Evaluator-Optimizer Pattern: Developer ↔ Reviewer&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="80" y="18" width="1010" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="One LLM &lt;i&gt;generates&lt;/i&gt; code output (PR); the other &lt;i&gt;evaluates&lt;/i&gt; it and feeds back — iterating until approved or retry cap reached." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;strokeColor=none;fillColor=none;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="54" width="1010" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ZONE BACKGROUNDS ===== -->
+        <mxCell id="zone-dev" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3fff3;strokeColor=#82b366;strokeWidth=2;opacity=50;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="72" y="96" width="440" height="580" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-rev" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8f0;strokeColor=#d6b656;strokeWidth=2;opacity=50;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="660" y="96" width="440" height="580" as="geometry" />
+        </mxCell>
+
+        <!-- Zone labels -->
+        <mxCell id="lbl-dev" value="OPTIMIZER" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="72" y="100" width="440" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl-rev" value="EVALUATOR" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;strokeColor=none;fillColor=none;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="660" y="100" width="440" height="28" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USER INPUT (top center) ===== -->
+        <mxCell id="user-in" value="&lt;b&gt;User&lt;/b&gt;&lt;br/&gt;assign_dotnet_task&lt;br/&gt;&lt;font color=&quot;#666666&quot;&gt;(repo, task, effort?)&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="485" y="100" width="202" height="72" as="geometry" />
+        </mxCell>
+
+        <!-- ===== DEVELOPER NODE (Optimizer) ===== -->
+        <mxCell id="dev-box" value="&lt;b&gt;Developer Agent&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#555555&quot;&gt;claude-opus-4-7 · effort: Xhigh&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;① Clone repo&lt;br/&gt;② Implement code change&lt;br/&gt;③ dotnet build · dotnet test&lt;br/&gt;④ Push branch · open PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="96" y="216" width="392" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ===== REVIEWER NODE (Evaluator) ===== -->
+        <mxCell id="rev-box" value="&lt;b&gt;Reviewer Agent&lt;/b&gt;&lt;br/&gt;&lt;font color=&quot;#555555&quot;&gt;claude-opus-4-7 · effort: High&lt;/font&gt;&lt;br/&gt;&lt;br/&gt;① Fetch PR diff via GitHub MCP&lt;br/&gt;② Analyze correctness · style · tests&lt;br/&gt;③ Write inline comments&lt;br/&gt;④ Return verdict" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="684" y="216" width="392" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ===== PR ARTIFACT (center, between agents) ===== -->
+        <mxCell id="pr-artifact" value="&lt;b&gt;PR on GitHub&lt;/b&gt;&lt;br/&gt;&lt;i&gt;generated output&lt;/i&gt;&lt;br/&gt;code diff · test results" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="496" y="240" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ===== VERDICT DECISION (center) ===== -->
+        <mxCell id="decision" value="&lt;b&gt;Verdict?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="496" y="430" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===== /COMPACT (on approval, left zone) ===== -->
+        <mxCell id="compact-box" value="&lt;b&gt;/compact&lt;/b&gt; (Developer, on approval)&lt;br/&gt;Replace thread history with LLM-generated&lt;br/&gt;summary ≤ 500 tokens via Azure AI Foundry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="96" y="556" width="392" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ERROR EXIT (rounds exhausted, right zone) ===== -->
+        <mxCell id="error-box" value="&lt;b&gt;Rounds exhausted (n ≥ MaxReviewRounds = 3)&lt;/b&gt;&lt;br/&gt;Return PR URL with &lt;i&gt;Error&lt;/i&gt; status&lt;br/&gt;Human review required" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="684" y="556" width="392" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ===== USER OUTPUT (bottom center) ===== -->
+        <mxCell id="user-out" value="&lt;b&gt;User&lt;/b&gt;&lt;br/&gt;PR URL returned" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="496" y="698" width="180" height="62" as="geometry" />
+        </mxCell>
+
+        <!-- ===== ROUND COUNTER ANNOTATION ===== -->
+        <mxCell id="round-counter" value="round n, where n = 1..MaxReviewRounds (default 3)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;strokeColor=none;fillColor=none;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="240" y="400" width="340" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ===== EDGES ===== -->
+
+        <!-- User → Developer (initial task) -->
+        <mxCell id="e-user-dev" value="MCP/HTTP · assign_dotnet_task" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;" edge="1" source="user-in" target="dev-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Developer → PR artifact -->
+        <mxCell id="e-dev-pr" value="opens PR" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" source="dev-box" target="pr-artifact" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PR artifact → Reviewer -->
+        <mxCell id="e-pr-rev" value="sends for review" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;fontSize=10;" edge="1" source="pr-artifact" target="rev-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Reviewer → Decision -->
+        <mxCell id="e-rev-dec" value="verdict" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" source="rev-box" target="decision" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision → /compact (Approved path) -->
+        <mxCell id="e-dec-compact" value="Approved" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;fontStyle=1;fontColor=#006600;" edge="1" source="decision" target="compact-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision → Error box (rounds exhausted path) -->
+        <mxCell id="e-dec-err" value="ChangeRequests &amp; n ≥ 3" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;fontStyle=1;fontColor=#cc0000;" edge="1" source="decision" target="error-box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision → Developer feedback loop (ChangeRequests, round < 3) -->
+        <mxCell id="e-feedback" value="ChangeRequests &amp; n &lt; 3&lt;br/&gt;(review comments as context)" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=10;fontStyle=1;fontColor=#b85450;" edge="1" source="decision" target="dev-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="586" y="770" />
+              <mxPoint x="292" y="770" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- /compact → User Output -->
+        <mxCell id="e-compact-out" value="PR URL" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" source="compact-box" target="user-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Error box → User Output (error result) -->
+        <mxCell id="e-err-out" value="error + PR URL" style="edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;fontColor=#b85450;" edge="1" source="error-box" target="user-out" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ===== SHARED INFRASTRUCTURE CALLOUTS ===== -->
+        <mxCell id="infra-label" value="&lt;b&gt;Shared infrastructure (both agents):&lt;/b&gt;  Azure Cosmos DB — per-thread memory (TTL 7d)  ·  Azure AI Foundry — Claude Opus 4.7 chat completions  ·  GitHub MCP Server (Foundry-hosted)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=0;strokeColor=#cccccc;fillColor=#f5f5f5;fontColor=#666666;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="72" y="788" width="1028" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
