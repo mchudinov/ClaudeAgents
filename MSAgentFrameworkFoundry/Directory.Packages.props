@@ -37,9 +37,8 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <!-- Polly (used in Plan 2) -->
     <PackageVersion Include="Polly" Version="8.5.0" />
-    <!-- Aspire (used in Plan 2) -->
-    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
-    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="9.0.0" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.0.0" />
+    <!-- Aspire (used in Plan 2) — AppHost is implicit in Aspire.AppHost.Sdk/13.3.1 -->
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="9.3.1" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.3.1" />
   </ItemGroup>
 </Project>

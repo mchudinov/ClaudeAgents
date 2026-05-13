@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Foundry.Agents.AppHost/Foundry.Agents.AppHost.csproj" />
     <Project Path="src/Foundry.Agents.Contracts/Foundry.Agents.Contracts.csproj" />
     <Project Path="src/Foundry.Agents.Developer/Foundry.Agents.Developer.csproj" />
     <Project Path="src/Foundry.Agents.Memory/Foundry.Agents.Memory.csproj" />
