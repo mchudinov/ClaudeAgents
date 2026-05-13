@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Foundry.Agents.Contracts.Tests/Foundry.Agents.Contracts.Tests.csproj" />
+    <Project Path="tests/Foundry.Agents.Developer.Tests/Foundry.Agents.Developer.Tests.csproj" />
     <Project Path="tests/Foundry.Agents.Memory.Tests/Foundry.Agents.Memory.Tests.csproj" />
   </Folder>
 </Solution>
