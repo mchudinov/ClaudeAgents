@@ -135,10 +135,9 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
 
             if (lastReview.Verdict == ReviewVerdict.Approved)
             {
-                // /compact wired in Task 12
-                await _store.SaveAsync(thread, ct);
-                return new AssignTaskResult(threadId, AssignTaskStatus.Approved, pr.HtmlUrl,
-                    lastReview.Summary, Array.Empty<string>());
+                var compactor = new Compactor.ThreadCompactor(_store, _chatFactory);
+                var summary = await compactor.CompactAsync(thread, effort, ct);
+                return new AssignTaskResult(threadId, AssignTaskStatus.Approved, pr.HtmlUrl, summary, Array.Empty<string>());
             }
             if (lastReview.Verdict == ReviewVerdict.RejectedBlocking)
             {
