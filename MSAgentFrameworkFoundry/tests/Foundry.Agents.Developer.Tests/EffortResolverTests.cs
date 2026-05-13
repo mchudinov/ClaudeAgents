@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Foundry.Agents.Contracts;
+using Foundry.Agents.Contracts.Chat;
 using Xunit;
 
 namespace Foundry.Agents.Developer.Tests;

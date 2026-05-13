@@ -113,20 +113,65 @@ public sealed class AssignTaskOrchestrator : IAssignTaskOrchestrator
         thread.PrNumber = pr.Number;
         await _store.SaveAsync(thread, ct);
 
-        // Review loop wired in Task 11. For now: try once, propagate failure as Error.
-        try
+        string? reviewThreadId = thread.LinkedReviewThreadId;
+        ReviewResult? lastReview = null;
+        for (int round = 1; round <= _options.MaxReviewRounds; round++)
         {
-            var review = await _reviewer.ReviewPullRequestAsync(
-                new ReviewRequest(request.GithubRepo, pr.Number, ThreadId: null, Effort: null), ct);
-            return new AssignTaskResult(threadId,
-                review.Verdict == ReviewVerdict.Approved ? AssignTaskStatus.Approved : AssignTaskStatus.ReviewFailed,
-                pr.HtmlUrl, review.Summary, review.Comments.Select(c => c.Body).ToList());
+            thread.ReviewRound = round;
+            await _store.SaveAsync(thread, ct);
+
+            try
+            {
+                lastReview = await _reviewer.ReviewPullRequestAsync(
+                    new ReviewRequest(request.GithubRepo, pr.Number, reviewThreadId, effort), ct);
+            }
+            catch (Exception ex)
+            {
+                return new AssignTaskResult(threadId, AssignTaskStatus.Error, pr.HtmlUrl,
+                    $"reviewer unreachable after retries: {ex.Message}", Array.Empty<string>());
+            }
+            reviewThreadId = lastReview.ThreadId;
+            thread.LinkedReviewThreadId = reviewThreadId;
+
+            if (lastReview.Verdict == ReviewVerdict.Approved)
+            {
+                // /compact wired in Task 12
+                await _store.SaveAsync(thread, ct);
+                return new AssignTaskResult(threadId, AssignTaskStatus.Approved, pr.HtmlUrl,
+                    lastReview.Summary, Array.Empty<string>());
+            }
+            if (lastReview.Verdict == ReviewVerdict.RejectedBlocking)
+            {
+                await _store.SaveAsync(thread, ct);
+                return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, pr.HtmlUrl,
+                    lastReview.Summary, lastReview.Comments.Select(c => c.Body).ToList());
+            }
+
+            // ChangesRequested — feed comments back, re-run build+test+push
+            var feedback = "Please address these review comments:\n" +
+                string.Join("\n", lastReview.Comments.Select(c => $"- {c.Body}"));
+            thread.Messages.Add(new ThreadMessage("user", feedback));
+            var amendResp = await chatClient.GetResponseAsync(
+                thread.Messages.Select(m => new ChatMessage(new ChatRole(m.Role), m.Content)).ToList(),
+                chatOptions, ct);
+            thread.Messages.Add(new ThreadMessage("assistant", amendResp.Text));
+
+            var r2 = await _git.DotnetRestoreAsync(workDir, _options.SolutionPath, ct);
+            if (r2.ExitCode != 0)
+                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, r2.StdErr, Array.Empty<string>());
+            var b2 = await _git.DotnetBuildAsync(workDir, _options.SolutionPath, ct);
+            if (b2.ExitCode != 0)
+                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, b2.StdErr, Array.Empty<string>());
+            var t2 = await _git.DotnetTestAsync(workDir, _options.SolutionPath, ct);
+            if (t2.ExitCode != 0)
+                return new AssignTaskResult(threadId, AssignTaskStatus.BuildFailed, pr.HtmlUrl, t2.StdErr, Array.Empty<string>());
+            await _git.CommitAllAsync(workDir, $"address review round {round}", ct);
+            await _git.PushAsync(workDir, branch, ct);
         }
-        catch (Exception ex)
-        {
-            return new AssignTaskResult(threadId, AssignTaskStatus.Error, pr.HtmlUrl,
-                $"review attempt failed: {ex.Message}", Array.Empty<string>());
-        }
+
+        await _store.SaveAsync(thread, ct);
+        return new AssignTaskResult(threadId, AssignTaskStatus.ReviewFailed, pr.HtmlUrl,
+            lastReview!.Summary, lastReview.Comments.Select(c => c.Body).ToList());
     }
 
     private static string BranchNameFor(string threadId, string taskDescription)

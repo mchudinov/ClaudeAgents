@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Foundry.Agents.Contracts;
+using Foundry.Agents.Contracts.Chat;
 using Foundry.Agents.Contracts.Mcp;
 using Foundry.Agents.Developer.GitHubMcp;
 using Foundry.Agents.Developer.GitWorkspace;
