@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Foundry.Agents.Contracts\Foundry.Agents.Contracts.csproj" />
+    <ProjectReference Include="..\Foundry.Agents.Developer\Foundry.Agents.Developer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
