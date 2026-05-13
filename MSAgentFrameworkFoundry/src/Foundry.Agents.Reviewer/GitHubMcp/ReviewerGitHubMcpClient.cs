@@ -9,6 +9,8 @@ public sealed class ReviewerGitHubMcpClient : IReviewerGitHubMcpClient
 
     public ReviewerGitHubMcpClient(McpClient client) => _client = client;
 
+    internal ReviewerGitHubMcpClient() => _client = null!;
+
     public static async Task<ReviewerGitHubMcpClient> CreateAsync(Uri endpoint, string? bearerToken, CancellationToken ct)
     {
         var options = new HttpClientTransportOptions
