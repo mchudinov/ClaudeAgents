@@ -37,11 +37,11 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <!-- Polly (used in Plan 2) -->
     <PackageVersion Include="Polly" Version="8.5.0" />
-    <!-- Aspire — must match the AppHost SDK version Aspire.AppHost.Sdk/13.3.1. Aspire renumbered from
+    <!-- Aspire — must match the AppHost SDK version Aspire.AppHost.Sdk/13.3.2. Aspire renumbered from
          9.x to 13.x to align with .NET 10; mixing 9.x integration packages with the 13.x SDK breaks
          the matched-pair invariant (Aspire.Hosting drops/renames types like PublishingContext). -->
-    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.3.1" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.3.1" />
+    <PackageVersion Include="Aspire.Hosting.Azure.CosmosDB" Version="13.3.2" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.3.2" />
     <PackageVersion Include="Xunit.SkippableFact" Version="1.4.13" />
   </ItemGroup>
 </Project>
