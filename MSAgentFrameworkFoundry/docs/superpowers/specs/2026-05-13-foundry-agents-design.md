@@ -368,7 +368,7 @@ The Developer thread holds the canonical `reviewRound` counter. It is incremente
 
 ```powershell
 dotnet user-secrets set "Parameters:anthropic-foundry-endpoint" "https://..." --project src/Foundry.Agents.AppHost
-dotnet user-secrets set "Parameters:foundry-github-mcp-endpoint" "https://..." --project src/Foundry.Agents.AppHost
+dotnet user-secrets set "Parameters:github-mcp-endpoint" "https://..." --project src/Foundry.Agents.AppHost
 dotnet user-secrets set "Parameters:github-pat" "ghp_..."                       --project src/Foundry.Agents.AppHost
 dotnet run --project src/Foundry.Agents.AppHost
 ```
@@ -377,7 +377,7 @@ The AppHost wires:
 
 - `AddAzureCosmosDB("threads").RunAsEmulator()` — Cosmos linux emulator container
 - `AddProject<Projects.Foundry_Agents_Developer>("developer")` and `AddProject<Projects.Foundry_Agents_Reviewer>("reviewer")` — service discovery injects the Reviewer URL into Developer
-- `AddParameter("anthropic-foundry-endpoint")`, `AddParameter("foundry-github-mcp-endpoint")`, `AddParameter("github-pat", secret: true)`
+- `AddParameter("anthropic-foundry-endpoint")`, `AddParameter("github-mcp-endpoint")`, `AddParameter("github-pat", secret: true)`
 
 **No local GitHub MCP container** — both dev and prod hit the Foundry-hosted GitHub MCP endpoint. The Foundry endpoint is reachable from a laptop with a valid token.
 

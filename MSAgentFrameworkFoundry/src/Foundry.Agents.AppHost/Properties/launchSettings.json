@@ -22,7 +22,9 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
         "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:19090",
-        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20162"
+        "ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:20162",
+        "anthropic-foundry-endpoint": "https://aif-agents-eus2.services.ai.azure.com/anthropic/v1/messages",
+        "github-mcp-endpoint": "https://api.githubcopilot.com/mcp/"
       }
     }
   }

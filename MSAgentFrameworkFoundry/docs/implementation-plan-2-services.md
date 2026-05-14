@@ -2394,7 +2394,7 @@ var cosmos = builder.AddAzureCosmosDB("threads").RunAsEmulator();
 var threads = cosmos.AddCosmosDatabase("agentdb").AddContainer("agent-threads", "/agentRole");
 
 var foundryEndpoint = builder.AddParameter("anthropic-foundry-endpoint", secret: false);
-var githubMcp = builder.AddParameter("foundry-github-mcp-endpoint", secret: false);
+var githubMcp = builder.AddParameter("github-mcp-endpoint", secret: false);
 var githubPat = builder.AddParameter("github-pat", secret: true);
 
 var reviewer = builder.AddProject<Projects.Foundry_Agents_Reviewer>("reviewer")
@@ -2417,7 +2417,7 @@ builder.Build().Run();
 
 ```bash
 dotnet user-secrets set "Parameters:anthropic-foundry-endpoint" "https://<your-foundry>.services.ai.azure.com" --project src/Foundry.Agents.AppHost
-dotnet user-secrets set "Parameters:foundry-github-mcp-endpoint" "https://<your-foundry-github-mcp-url>/mcp" --project src/Foundry.Agents.AppHost
+dotnet user-secrets set "Parameters:github-mcp-endpoint" "https://<your-foundry-github-mcp-url>/mcp" --project src/Foundry.Agents.AppHost
 dotnet user-secrets set "Parameters:github-pat" "<your PAT>" --project src/Foundry.Agents.AppHost
 ```
 

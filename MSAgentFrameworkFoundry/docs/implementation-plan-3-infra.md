@@ -1169,7 +1169,7 @@ See:
 ```bash
 # Seed the AppHost parameters (once)
 dotnet user-secrets set "Parameters:anthropic-foundry-endpoint" "https://<your-foundry>.services.ai.azure.com" --project src/Foundry.Agents.AppHost
-dotnet user-secrets set "Parameters:foundry-github-mcp-endpoint" "https://<...>/mcp" --project src/Foundry.Agents.AppHost
+dotnet user-secrets set "Parameters:github-mcp-endpoint" "https://<...>/mcp" --project src/Foundry.Agents.AppHost
 dotnet user-secrets set "Parameters:github-pat" "<your PAT>" --project src/Foundry.Agents.AppHost
 
 # Run
